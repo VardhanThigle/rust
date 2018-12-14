@@ -42,6 +42,10 @@ pub fn target() -> Result<Target, String> {
         "ENCLAVE_SIZE",
         "CFGDATA_BASE",
         "DEBUG",
+	    "EH_FRM_HDR_BASE",
+        "EH_FRM_HDR_SIZE",
+        "ENCLAVE_TEXT_BASE",
+        "ENCLAVE_TEXT_SIZE",
     ];
     let opts = TargetOptions {
         dynamic_linking: false,
