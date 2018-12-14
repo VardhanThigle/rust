@@ -11,7 +11,8 @@
 use std::iter;
 
 use super::{LinkerFlavor, Target, TargetOptions, PanicStrategy};
-
+// TODO-[unwind support] add post link args to libunwind.a
+// How do we bundle it?
 pub fn target() -> Result<Target, String> {
     const PRE_LINK_ARGS: &[&str] = &[
         "-Wl,--as-needed",
@@ -47,7 +48,7 @@ pub fn target() -> Result<Target, String> {
         executables: true,
         linker_is_gnu: true,
         max_atomic_width: Some(64),
-        panic_strategy: PanicStrategy::Abort,
+        panic_strategy: PanicStrategy::Unwind,
         cpu: "x86-64".into(),
         features: "+rdrnd,+rdseed".into(),
         position_independent_executables: true,
