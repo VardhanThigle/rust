@@ -19,12 +19,10 @@ pub struct RWLock {
 }
 
 
-// Below is to check. at compile time, that RWLock has size of 128 bytes.
-// This is an assumption in libwundind for rust-sgx target.
-const SIZE_OF_RWLock: usize = 128;
+// Below is to check at compile time, that RWLock has size of 128 bytes.
 #[allow(unreachable_code)]
 unsafe fn _rw_lock_size_assert() {
-    mem::transmute::<RWLock, [u8; SIZE_OF_RWLock]>(panic!());
+    mem::transmute::<RWLock, [u8; 128]>(panic!());
 }
 
 //unsafe impl Send for RWLock {}
@@ -101,7 +99,7 @@ impl RWLock {
     #[inline]
     unsafe fn __read_unlock(&self,
                             mut rguard: SpinMutexGuard<WaitVariable<Option<NonZeroUsize>>>,
-                            mut wguard: SpinMutexGuard<WaitVariable<bool>>) {
+                            wguard: SpinMutexGuard<WaitVariable<bool>>) {
         *rguard.lock_var_mut() = NonZeroUsize::new(rguard.lock_var().unwrap().get() - 1);
         if rguard.lock_var().is_some() {
             // There are other active readers
@@ -118,15 +116,15 @@ impl RWLock {
 
     #[inline]
     pub unsafe fn read_unlock(&self) {
-        let mut rguard = self.readers.lock();
+        let rguard = self.readers.lock();
         let wguard = self.writer.lock();
         self.__read_unlock(rguard, wguard);
     }
 
     #[inline]
     unsafe fn __write_unlock(&self,
-                            mut rguard: SpinMutexGuard<WaitVariable<Option<NonZeroUsize>>>,
-                            mut wguard: SpinMutexGuard<WaitVariable<bool>>) {
+                            rguard: SpinMutexGuard<WaitVariable<Option<NonZeroUsize>>>,
+                            wguard: SpinMutexGuard<WaitVariable<bool>>) {
         if let Err(mut wguard) = WaitQueue::notify_one(wguard) {
             // No writers waiting, release the write lock
             *wguard.lock_var_mut() = false;
@@ -200,7 +198,7 @@ pub unsafe extern "C"  fn __rust_rwlock_unlock(p : *mut RWLock) -> i32 {
 
 #[no_mangle]
 pub unsafe extern "C"  fn __rust_print_msg(m : *mut u8, s : i32) -> i32 {
-    let mut i : i32 = 0;
+    let i : i32 = 0;
     for i in 0..s {
         let c = *m.offset(i as isize) as char;
         if c == '\0' {
@@ -213,11 +211,5 @@ pub unsafe extern "C"  fn __rust_print_msg(m : *mut u8, s : i32) -> i32 {
 
 #[no_mangle]
 pub unsafe extern "C"  fn __rust_abort() {
-    unsafe { ::sys::abort_internal() };
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn __rust_encl_address(offset : u64) -> *mut u8 {
-    unsafe { ::sys::sgx::abi::mem::rel_ptr_mut::<u8>(offset)}
-
+    ::sys::abort_internal();
 }
