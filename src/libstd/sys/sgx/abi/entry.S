@@ -57,9 +57,9 @@ IMAGE_BASE:
     /*  Non-zero if debugging is enabled, zero otherwise */
     globvar DEBUG 1
     /*  The base address (relative to enclave start) of the enclave text section */
-    globvar ENCLAVE_TEXT_BASE 8
+    globvar TEXT_BASE 8
     /*  The size in bytes of enclacve text section */
-    globvar ENCLAVE_TEXT_SIZE 8
+    globvar TEXT_SIZE 8
     /*  The base address (relative to enclave start) of the enclave EH_FRM_HDR section */
     globvar EH_FRM_HDR_BASE 8
     /*  The size in bytes of enclacve EH_FRM_HDR section */

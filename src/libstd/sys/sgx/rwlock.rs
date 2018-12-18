@@ -9,8 +9,12 @@
 // except according to those terms.
 
 use num::NonZeroUsize;
+use slice;
+use str;
 
-use super::waitqueue::{WaitVariable, WaitQueue, SpinMutex, SpinMutexGuard, NotifiedTcs, try_lock_or_false};
+use super::waitqueue::{
+    try_lock_or_false, NotifiedTcs, SpinMutex, SpinMutexGuard, WaitQueue, WaitVariable,
+};
 use mem;
 
 pub struct RWLock {
@@ -18,11 +22,10 @@ pub struct RWLock {
     writer: SpinMutex<WaitVariable<bool>>,
 }
 
-
 // Below is to check at compile time, that RWLock has size of 128 bytes.
-#[allow(unreachable_code)]
-unsafe fn _rw_lock_size_assert() {
-    mem::transmute::<RWLock, [u8; 128]>(panic!());
+#[allow(dead_code)]
+unsafe fn rw_lock_size_assert(r: RWLock) {
+    mem::transmute::<RWLock, [u8; 128]>(r);
 }
 
 //unsafe impl Send for RWLock {}
@@ -32,7 +35,7 @@ impl RWLock {
     pub const fn new() -> RWLock {
         RWLock {
             readers: SpinMutex::new(WaitVariable::new(None)),
-            writer: SpinMutex::new(WaitVariable::new(false))
+            writer: SpinMutex::new(WaitVariable::new(false)),
         }
     }
 
@@ -97,9 +100,11 @@ impl RWLock {
     }
 
     #[inline]
-    unsafe fn __read_unlock(&self,
-                            mut rguard: SpinMutexGuard<WaitVariable<Option<NonZeroUsize>>>,
-                            wguard: SpinMutexGuard<WaitVariable<bool>>) {
+    unsafe fn __read_unlock(
+        &self,
+        mut rguard: SpinMutexGuard<WaitVariable<Option<NonZeroUsize>>>,
+        wguard: SpinMutexGuard<WaitVariable<bool>>,
+    ) {
         *rguard.lock_var_mut() = NonZeroUsize::new(rguard.lock_var().unwrap().get() - 1);
         if rguard.lock_var().is_some() {
             // There are other active readers
@@ -122,9 +127,11 @@ impl RWLock {
     }
 
     #[inline]
-    unsafe fn __write_unlock(&self,
-                            rguard: SpinMutexGuard<WaitVariable<Option<NonZeroUsize>>>,
-                            wguard: SpinMutexGuard<WaitVariable<bool>>) {
+    unsafe fn __write_unlock(
+        &self,
+        rguard: SpinMutexGuard<WaitVariable<Option<NonZeroUsize>>>,
+        wguard: SpinMutexGuard<WaitVariable<bool>>,
+    ) {
         if let Err(mut wguard) = WaitQueue::notify_one(wguard) {
             // No writers waiting, release the write lock
             *wguard.lock_var_mut() = false;
@@ -143,7 +150,6 @@ impl RWLock {
         }
     }
 
-
     #[inline]
     pub unsafe fn write_unlock(&self) {
         let rguard = self.readers.lock();
@@ -152,7 +158,7 @@ impl RWLock {
     }
 
     #[inline]
-    pub unsafe fn unlock(&self) {
+    unsafe fn unlock(&self) {
         let rguard = self.readers.lock();
         let wguard = self.writer.lock();
         if *wguard.lock_var() == true {
@@ -166,13 +172,10 @@ impl RWLock {
     pub unsafe fn destroy(&self) {}
 }
 
-const EINVAL:i32 = 22;
-
-
-// TODO-[unwind support] move these to another file maybe? Link issue due to different CUGs.
+const EINVAL: i32 = 22;
 
 #[no_mangle]
-pub unsafe extern "C" fn __rust_rwlock_rdlock(p : *mut RWLock) -> i32 {
+pub unsafe extern "C" fn __rust_rwlock_rdlock(p: *mut RWLock) -> i32 {
     if p.is_null() {
         return EINVAL;
     }
@@ -180,15 +183,16 @@ pub unsafe extern "C" fn __rust_rwlock_rdlock(p : *mut RWLock) -> i32 {
     return 0;
 }
 
-
-
 #[no_mangle]
-pub unsafe extern "C"  fn __rust_rwlock_wrlock(p : *mut RWLock) -> i32 {
+pub unsafe extern "C" fn __rust_rwlock_wrlock(p: *mut RWLock) -> i32 {
+    if p.is_null() {
+        return EINVAL;
+    }
     (*p).write();
     return 0;
 }
 #[no_mangle]
-pub unsafe extern "C"  fn __rust_rwlock_unlock(p : *mut RWLock) -> i32 {
+pub unsafe extern "C" fn __rust_rwlock_unlock(p: *mut RWLock) -> i32 {
     if p.is_null() {
         return EINVAL;
     }
@@ -197,19 +201,17 @@ pub unsafe extern "C"  fn __rust_rwlock_unlock(p : *mut RWLock) -> i32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C"  fn __rust_print_msg(m : *mut u8, s : i32) -> i32 {
-    let i : i32 = 0;
-    for i in 0..s {
-        let c = *m.offset(i as isize) as char;
-        if c == '\0' {
-            break;
-        }
-        print!("{}", c)
+pub unsafe extern "C" fn __rust_print_err(m: *mut u8, s: i32) {
+    if s < 0 {
+        return;
     }
-    return i;
+    let buf = slice::from_raw_parts(m as *const u8, s as _);
+    if let Ok(s) = str::from_utf8(&buf[..buf.iter().position(|&b| b == 0).unwrap_or(buf.len())]) {
+        eprint!("{}", s);
+    }
 }
 
 #[no_mangle]
-pub unsafe extern "C"  fn __rust_abort() {
+pub unsafe extern "C" fn __rust_abort() {
     ::sys::abort_internal();
 }

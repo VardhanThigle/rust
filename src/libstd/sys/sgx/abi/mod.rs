@@ -13,7 +13,7 @@ use io::Write;
 
 // runtime features
 mod reloc;
-pub(super) mod mem;
+mod mem;
 pub(super) mod panic;
 
 // library features
