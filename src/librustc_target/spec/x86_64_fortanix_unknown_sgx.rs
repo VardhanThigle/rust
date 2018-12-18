@@ -33,6 +33,11 @@ pub fn target() -> Result<Target, String> {
          "-Wl,-Bsymbolic",
          "-Wl,--export-dynamic",
     ];
+
+    const POST_LINK_OBJS: &[&str] = &[
+        "/home/vardhan/Work/GIT_REPOS/Fortanix_Github/libunwind/build/lib/libunwind.a"
+    ];
+
     const EXPORT_SYMBOLS: &[&str] = &[
         "sgx_entry",
         "HEAP_BASE",
@@ -58,6 +63,9 @@ pub fn target() -> Result<Target, String> {
         position_independent_executables: true,
         pre_link_args: iter::once(
                 (LinkerFlavor::Gcc, PRE_LINK_ARGS.iter().cloned().map(String::from).collect())
+        ).collect(),
+        post_link_objects: iter::once(
+                POST_LINK_OBJS.iter().cloned().map(String::from).collect()
         ).collect(),
         override_export_symbols: Some(EXPORT_SYMBOLS.iter().cloned().map(String::from).collect()),
         ..Default::default()

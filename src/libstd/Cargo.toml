@@ -39,8 +39,7 @@ rustc_tsan = { path = "../librustc_tsan" }
 [target.'cfg(any(all(target_arch = "wasm32", not(target_os = "emscripten")), target_env = "sgx"))'.dependencies]
 dlmalloc = { version = "0.1", features = ['rustc-dep-of-std'] }
 
-# TODO-[unwind support] Remve this once we test default strategy unwind in rust_c for sgx target 
-[target.x86_64-fortanix-unknown-sgx-unwind.dependencies]
+[target.x86_64-fortanix-unknown-sgx.dependencies]
 fortanix-sgx-abi = { version = "0.3.1", features = ['rustc-dep-of-std'] }
 
 [build-dependencies]
