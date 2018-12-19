@@ -32,8 +32,6 @@ pub fn target() -> Result<Target, String> {
         "-Wl,--export-dynamic",
     ];
 
-    const POST_LINK_OBJS: &[&str] = &["libunwind.a"];
-
     const EXPORT_SYMBOLS: &[&str] = &[
         "sgx_entry",
         "HEAP_BASE",
@@ -62,8 +60,7 @@ pub fn target() -> Result<Target, String> {
             PRE_LINK_ARGS.iter().cloned().map(String::from).collect(),
         ))
         .collect(),
-        post_link_objects: iter::once(POST_LINK_OBJS.iter().cloned().map(String::from).collect())
-            .collect(),
+        post_link_objects: vec!["libunwind.a".into()],
         override_export_symbols: Some(EXPORT_SYMBOLS.iter().cloned().map(String::from).collect()),
         ..Default::default()
     };
