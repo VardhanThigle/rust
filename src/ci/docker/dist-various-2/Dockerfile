@@ -22,6 +22,8 @@ RUN add-apt-repository -y 'deb http://apt.dilos.org/dilos dilos2-testing main'
 
 WORKDIR /tmp
 COPY dist-various-2/shared.sh /tmp/
+COPY dist-various-2/build-x86_64-fortanix-unknown-sgx-toolchain.sh /tmp/
+RUN /tmp/build-x86_64-fortanix-unknown-sgx-toolchain.sh
 COPY dist-various-2/build-cloudabi-toolchain.sh /tmp/
 RUN /tmp/build-cloudabi-toolchain.sh x86_64-unknown-cloudabi
 COPY dist-various-2/build-fuchsia-toolchain.sh /tmp/
@@ -65,6 +67,8 @@ ENV TARGETS=$TARGETS,wasm32-unknown-unknown
 ENV TARGETS=$TARGETS,x86_64-sun-solaris
 ENV TARGETS=$TARGETS,x86_64-unknown-linux-gnux32
 ENV TARGETS=$TARGETS,x86_64-unknown-cloudabi
+ENV TARGETS=$TARGETS,x86_64-fortanix-unknown-sgx
 
 ENV RUST_CONFIGURE_ARGS --enable-extended --enable-lld --disable-docs
-ENV SCRIPT python2.7 ../x.py dist --target $TARGETS
+ENV SCRIPT python2.7 ../x.py dist --target $TARGETS && \
+         cp /x86_64_fortanix_unknown_sgx/lib/* /checkout/obj/build/x86_64-unknown-linux-gnu/stage2/lib/rustlib/x86_64-fortanix-unknown-sgx/lib/
